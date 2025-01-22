@@ -8,9 +8,19 @@ from sklearn.preprocessing import MinMaxScaler
 
 # Function to fetch data from yfinance
 def get_data(tickers, start_date, end_date):
-    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
-    returns = data.pct_change().dropna()
-    return data, returns
+    data = yf.download(tickers, start=start_date, end=end_date)
+    if data.empty:
+        raise ValueError("No data fetched. Please check the tickers and date range.")
+    
+    if 'Adj Close' in data.columns:
+        returns = data['Adj Close'].pct_change().dropna()
+        return data['Adj Close'], returns
+    elif 'Close' in data.columns:
+        returns = data['Close'].pct_change().dropna()
+        return data['Close'], returns
+    else:
+        raise KeyError("Neither 'Adj Close' nor 'Close' columns are available.")
+
 
 # Function to calculate portfolio metrics
 def calculate_metrics(returns, risk_free_rate=0.02):
