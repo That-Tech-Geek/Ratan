@@ -1,1 +1,6 @@
 streamlit
+numpy
+pandas
+yfinance
+torch
+scikit-learn
