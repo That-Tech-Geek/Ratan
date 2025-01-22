@@ -31,11 +31,15 @@ def calculate_metrics(returns, risk_free_rate=0.02):
     return mean_returns, volatilities, sharpe_ratios
 
 # Prepare data for LSTM
-def prepare_data(returns, lookback=30):
+def prepare_data(returns, lookback):
     X, y = [], []
     for i in range(lookback, len(returns)):
-        X.append(returns[i-lookback:i].values)
-        y.append(returns[i].values)
+        X.append(returns.iloc[i-lookback:i].values)  # Use iloc to slice the rows
+        if i < len(returns.columns):
+            y.append(returns.iloc[i].values)  # Use iloc to get the corresponding row
+        else:
+            st.error(f"Index {i} exceeds the available data length.")
+            break
     return np.array(X), np.array(y)
 
 # Define LSTM model using PyTorch
