@@ -1,109 +1,101 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
 import yfinance as yf
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 import streamlit as st
 
-# Define the neural network model for regression
-class PortfolioRiskHedgingModel(nn.Module):
-    def __init__(self, input_size):
-        super(PortfolioRiskHedgingModel, self).__init__()
-        self.fc = nn.Linear(input_size, 1)  # Regression model with one output (for price prediction)
-
-    def forward(self, x):
-        return self.fc(x)
-
-# Function to fetch historical stock data
+# Function to fetch data from Yahoo Finance
 def get_data(tickers, start_date, end_date):
     data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
     returns = data.pct_change().dropna()
     return data, returns
 
-# Function to prepare the data for training (create X and y)
+# Function to fetch the 10-year Treasury yield from Yahoo Finance
+def get_risk_free_rate():
+    tnx = yf.Ticker("^TNX")
+    data = tnx.history(period="1d")
+    risk_free_rate = data['Close'].iloc[-1] / 100  # Convert to decimal (e.g., 3% -> 0.03)
+    return risk_free_rate
+
+# Function to calculate WACC
+def calculate_wacc(equity, debt, equity_cost, debt_cost, tax_rate):
+    total = equity + debt
+    wacc = (equity / total) * equity_cost + (debt / total) * debt_cost * (1 - tax_rate)
+    return wacc
+
+# Function to calculate ROIC
+def calculate_roic(net_income, debt, equity):
+    invested_capital = debt + equity
+    roic = net_income / invested_capital
+    return roic
+
+# Function to prepare data for model training
 def prepare_data(returns, lookback):
-    X = []
-    y = []
-    
-    for i in range(lookback, len(returns)):
-        X.append(returns.iloc[i - lookback:i].values.flatten())  # Collecting 'lookback' periods of returns
-        y.append(returns.iloc[i].values)  # Target is the return at time 'i'
-    
-    X = np.array(X)
-    y = np.array(y)
-    
-    # Reshape y to ensure it's a 2D array (batch_size, 1)
-    y = y.reshape(-1, 1)
-    
-    return X, y
+    X, y = [], []
+    for i in range(len(returns) - lookback):
+        X.append(returns.iloc[i:i + lookback].values)
+        y.append(returns.iloc[i + lookback].values)
+    return np.array(X), np.array(y)
 
-# Train the model with early stopping based on MSE threshold
-def train_model(model, X_train, y_train, mse_threshold=0.001, num_epochs=100):
-    criterion = nn.MSELoss()  # Mean Squared Error loss function
-    optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adam optimizer
-    
-    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
-    
-    # Ensure y_train_tensor is reshaped to match output dimension (batch_size, 1)
-    if y_train_tensor.ndimension() == 1:
-        y_train_tensor = y_train_tensor.view(-1, 1)  # Reshapes to (batch_size, 1)
-    
-    for epoch in range(num_epochs):
-        model.train()
-        optimizer.zero_grad()  # Zero the gradients
+# Function to train the model
+def train_model(X_train, y_train, mse_threshold):
+    model = LinearRegression()
+    scaler = StandardScaler()
 
-        outputs = model(X_train_tensor)  # Model output (predicted returns)
-        
-        # Check the shapes before calculating loss
-        print(f"Epoch {epoch+1}: Shape of outputs: {outputs.shape}")
-        print(f"Epoch {epoch+1}: Shape of y_train_tensor: {y_train_tensor.shape}")
+    X_train_scaled = scaler.fit_transform(X_train.reshape(X_train.shape[0], -1))
+    y_train_scaled = scaler.fit_transform(y_train)
 
-        loss = criterion(outputs, y_train_tensor)  # Calculate the loss
-        loss.backward()  # Backpropagation to compute gradients
-        optimizer.step()  # Update model parameters
-
-        mse = loss.item()  # Get the MSE from the loss
-        if mse < mse_threshold:
-            print(f"Stopping early at epoch {epoch+1} due to MSE < {mse_threshold}")
+    while True:
+        model.fit(X_train_scaled, y_train_scaled)
+        predictions = model.predict(X_train_scaled)
+        mse = np.mean((predictions - y_train_scaled) ** 2)
+        if mse <= mse_threshold:
             break
 
-        print(f"Epoch {epoch+1}: Loss = {mse}")
+    return model, scaler
 
-    return model
-
-# Streamlit app setup
+# Streamlit App
 def main():
-    st.title("Dynamic Portfolio Risk Hedging AI")
+    st.title("Dynamic Portfolio Risk Hedging")
 
-    tickers = st.text_input("Enter Stock Tickers (comma separated)", "AAPL,GOOG,MSFT")
-    start_date = st.date_input("Start Date", value=pd.to_datetime("2015-01-01"))
-    end_date = st.date_input("End Date", value=pd.to_datetime("2021-01-01"))
-    lookback = st.slider("Lookback Period (Days)", min_value=10, max_value=100, value=30)
-    mse_threshold = st.slider("MSE Threshold", min_value=0.0001, max_value=0.1, value=0.001, step=0.0001)
-    
-    if tickers and start_date and end_date:
-        tickers = tickers.split(",")
-        data, returns = get_data(tickers, start_date, end_date)
+    tickers = st.text_input("Enter tickers (comma-separated):", "AAPL, MSFT, TSLA")
+    start_date = st.date_input("Start Date:")
+    end_date = st.date_input("End Date:")
+    lookback = st.slider("Lookback Period:", min_value=1, max_value=30, value=5)
+    mse_threshold = st.slider("MSE Threshold (in %):", min_value=0.1, max_value=5.0, value=0.1)
+
+    if st.button("Run Analysis"):
+        tickers_list = [ticker.strip() for ticker in tickers.split(",")]
         
-        # Prepare data for training
+        data, returns = get_data(tickers_list, start_date, end_date)
+        risk_free_rate = get_risk_free_rate()
+        
+        st.write(f"Risk-Free Rate: {risk_free_rate:.2%}")
+
         X, y = prepare_data(returns, lookback)
-        
-        # Normalize the data
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
 
-        # Initialize and train the model
-        model = PortfolioRiskHedgingModel(input_size=X_scaled.shape[1])  # Input size is the number of features
-        trained_model = train_model(model, X_scaled, y, mse_threshold)
+        try:
+            model, scaler = train_model(X, y, mse_threshold / 100)
+            st.success("Model trained successfully with MSE below threshold!")
+        except Exception as e:
+            st.error(f"Error in model training: {e}")
 
-        # Display the results
-        st.write(f"Model trained with MSE threshold of {mse_threshold}")
-        st.write(f"Trained Model: {trained_model}")
-        
-        # Optionally, you can use the model to make predictions on new data here.
+        st.line_chart(data)
+
+        # Display WACC and ROIC calculations (for analysis, not user display)
+        equity = st.number_input("Equity (in USD):", min_value=0.0, step=1.0)
+        debt = st.number_input("Debt (in USD):", min_value=0.0, step=1.0)
+        equity_cost = st.number_input("Cost of Equity (in %):", min_value=0.0, step=0.1) / 100
+        debt_cost = st.number_input("Cost of Debt (in %):", min_value=0.0, step=0.1) / 100
+        tax_rate = st.number_input("Tax Rate (in %):", min_value=0.0, step=0.1) / 100
+        net_income = st.number_input("Net Income (in USD):", min_value=0.0, step=1.0)
+
+        if equity and debt and equity_cost and debt_cost and tax_rate and net_income:
+            wacc = calculate_wacc(equity, debt, equity_cost, debt_cost, tax_rate)
+            roic = calculate_roic(net_income, debt, equity)
+            st.write(f"WACC: {wacc:.2%}")
+            st.write(f"ROIC: {roic:.2%}")
 
 if __name__ == "__main__":
     main()
