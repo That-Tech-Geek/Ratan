@@ -55,23 +55,35 @@ class LSTMModel(nn.Module):
         return out
 
 # Train model until MSE threshold
-def train_model(model, X_train, y_train, mse_threshold=0.001, learning_rate=0.001, epochs=100):
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    
+def train_model(model, X_train, y_train, mse_threshold):
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
-    
-    for epoch in range(epochs):
+
+    for epoch in range(1000):  # Example number of epochs
         model.train()
-        optimizer.zero_grad()
+
+        # Forward pass
         outputs = model(X_train_tensor)
+        
+        # Ensure correct shape (if necessary)
+        outputs = outputs.squeeze()  # Remove unnecessary dimensions
+        y_train_tensor = y_train_tensor.squeeze()  # Remove unnecessary dimensions
+
+        # Compute the loss
         loss = criterion(outputs, y_train_tensor)
+
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
-        if loss.item() <= mse_threshold:
+
+        # Check if the MSE is below the threshold
+        if loss.item() < mse_threshold:
+            print(f"Model converged at epoch {epoch}, loss: {loss.item()}")
             break
+
     return model
 
 # Dynamic hedging
