@@ -1,164 +1,109 @@
-import streamlit as st
-import yfinance as yf
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.preprocessing import MinMaxScaler
+import torch.optim as optim
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+import streamlit as st
 
-# Function to fetch data from yfinance
-def get_data(tickers, start_date, end_date):
-    data = yf.download(tickers, start=start_date, end=end_date)
-    if data.empty:
-        raise ValueError("No data fetched. Please check the tickers and date range.")
-    
-    if 'Adj Close' in data.columns:
-        returns = data['Adj Close'].pct_change().dropna()
-        return data['Adj Close'], returns
-    elif 'Close' in data.columns:
-        returns = data['Close'].pct_change().dropna()
-        return data['Close'], returns
-    else:
-        raise KeyError("Neither 'Adj Close' nor 'Close' columns are available.")
+# Define the neural network model for regression
+class PortfolioRiskHedgingModel(nn.Module):
+    def __init__(self, input_size):
+        super(PortfolioRiskHedgingModel, self).__init__()
+        self.fc = nn.Linear(input_size, 1)  # Regression model with one output (for price prediction)
 
-
-# Function to calculate portfolio metrics
-def calculate_metrics(returns, risk_free_rate=0.02):
-    mean_returns = returns.mean() * 252
-    cov_matrix = returns.cov() * 252
-    volatilities = np.sqrt(np.diag(cov_matrix))
-    sharpe_ratios = (mean_returns - risk_free_rate) / volatilities
-    return mean_returns, volatilities, sharpe_ratios
-
-# Prepare data for LSTM
-def prepare_data(returns, lookback):
-    X, y = [], []
-    for i in range(lookback, len(returns)):
-        X.append(returns.iloc[i-lookback:i].values)  # Use iloc to slice the rows
-        if i < len(returns.columns):
-            y.append(returns.iloc[i].values)  # Use iloc to get the corresponding row
-        else:
-            st.error(f"Index {i} exceeds the available data length.")
-            break
-    return np.array(X), np.array(y)
-
-# Define LSTM model using PyTorch
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=2):
-        super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-    
     def forward(self, x):
-        out, _ = self.lstm(x)
-        out = self.fc(out[:, -1, :])
-        return out
+        return self.fc(x)
 
-# Train model until MSE threshold
-def train_model(model, X_train, y_train, mse_threshold):
-    criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+# Function to fetch historical stock data
+def get_data(tickers, start_date, end_date):
+    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
+    returns = data.pct_change().dropna()
+    return data, returns
 
+# Function to prepare the data for training (create X and y)
+def prepare_data(returns, lookback):
+    X = []
+    y = []
+    
+    for i in range(lookback, len(returns)):
+        X.append(returns.iloc[i - lookback:i].values.flatten())  # Collecting 'lookback' periods of returns
+        y.append(returns.iloc[i].values)  # Target is the return at time 'i'
+    
+    X = np.array(X)
+    y = np.array(y)
+    
+    # Reshape y to ensure it's a 2D array (batch_size, 1)
+    y = y.reshape(-1, 1)
+    
+    return X, y
+
+# Train the model with early stopping based on MSE threshold
+def train_model(model, X_train, y_train, mse_threshold=0.001, num_epochs=100):
+    criterion = nn.MSELoss()  # Mean Squared Error loss function
+    optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adam optimizer
+    
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
-
-    for epoch in range(1000):  # Example number of epochs
+    
+    # Ensure y_train_tensor is reshaped to match output dimension (batch_size, 1)
+    if y_train_tensor.ndimension() == 1:
+        y_train_tensor = y_train_tensor.view(-1, 1)  # Reshapes to (batch_size, 1)
+    
+    for epoch in range(num_epochs):
         model.train()
+        optimizer.zero_grad()  # Zero the gradients
 
-        # Forward pass
-        outputs = model(X_train_tensor)
+        outputs = model(X_train_tensor)  # Model output (predicted returns)
         
-        # Ensure correct shape (if necessary)
-        outputs = outputs.squeeze()  # Remove unnecessary dimensions
-        y_train_tensor = y_train_tensor.squeeze()  # Remove unnecessary dimensions
+        # Check the shapes before calculating loss
+        print(f"Epoch {epoch+1}: Shape of outputs: {outputs.shape}")
+        print(f"Epoch {epoch+1}: Shape of y_train_tensor: {y_train_tensor.shape}")
 
-        # Compute the loss
-        loss = criterion(outputs, y_train_tensor)
+        loss = criterion(outputs, y_train_tensor)  # Calculate the loss
+        loss.backward()  # Backpropagation to compute gradients
+        optimizer.step()  # Update model parameters
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # Check if the MSE is below the threshold
-        if loss.item() < mse_threshold:
-            print(f"Model converged at epoch {epoch}, loss: {loss.item()}")
+        mse = loss.item()  # Get the MSE from the loss
+        if mse < mse_threshold:
+            print(f"Stopping early at epoch {epoch+1} due to MSE < {mse_threshold}")
             break
+
+        print(f"Epoch {epoch+1}: Loss = {mse}")
 
     return model
 
-# Dynamic hedging
-def hedge_portfolio(model, X_test, scaler, original_returns):
-    model.eval()
-    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-    predictions = model(X_test_tensor).detach().numpy()
-    predicted_returns = scaler.inverse_transform(predictions)
-    hedge_ratios = predicted_returns / original_returns.iloc[-len(predicted_returns):].values
-    return hedge_ratios
+# Streamlit app setup
+def main():
+    st.title("Dynamic Portfolio Risk Hedging AI")
 
-# Stress testing
-def stress_test(returns, shocks=(-0.1, -0.2, -0.3)):
-    stress_results = {}
-    for shock in shocks:
-        stressed_returns = returns + shock
-        stress_results[f'Shock {shock*100:.0f}%'] = stressed_returns.mean(axis=0)
-    return pd.DataFrame(stress_results)
+    tickers = st.text_input("Enter Stock Tickers (comma separated)", "AAPL,GOOG,MSFT")
+    start_date = st.date_input("Start Date", value=pd.to_datetime("2015-01-01"))
+    end_date = st.date_input("End Date", value=pd.to_datetime("2021-01-01"))
+    lookback = st.slider("Lookback Period (Days)", min_value=10, max_value=100, value=30)
+    mse_threshold = st.slider("MSE Threshold", min_value=0.0001, max_value=0.1, value=0.001, step=0.0001)
+    
+    if tickers and start_date and end_date:
+        tickers = tickers.split(",")
+        data, returns = get_data(tickers, start_date, end_date)
+        
+        # Prepare data for training
+        X, y = prepare_data(returns, lookback)
+        
+        # Normalize the data
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-# Streamlit app
-st.title("Dynamic Portfolio Risk Hedging AI with PyTorch")
+        # Initialize and train the model
+        model = PortfolioRiskHedgingModel(input_size=X_scaled.shape[1])  # Input size is the number of features
+        trained_model = train_model(model, X_scaled, y, mse_threshold)
 
-# Sidebar inputs
-st.sidebar.header("Portfolio Settings")
-tickers = st.sidebar.text_input("Enter Tickers (comma-separated)", value="AAPL,MSFT,GOOGL,AMZN").split(",")
-start_date = st.sidebar.date_input("Start Date", value=pd.to_datetime("2018-01-01"))
-end_date = st.sidebar.date_input("End Date", value=pd.to_datetime("2023-01-01"))
-lookback = st.sidebar.slider("Lookback Period (days)", 10, 60, 30)
-risk_free_rate = st.sidebar.number_input("Risk-Free Rate (%)", min_value=0.0, max_value=10.0, value=2.0) / 100
-mse_threshold = st.sidebar.number_input("MSE Threshold (%)", min_value=0.01, max_value=1.0, value=0.1) / 100
+        # Display the results
+        st.write(f"Model trained with MSE threshold of {mse_threshold}")
+        st.write(f"Trained Model: {trained_model}")
+        
+        # Optionally, you can use the model to make predictions on new data here.
 
-# Fetch data
-st.subheader("Fetching Data")
-with st.spinner("Downloading data..."):
-    data, returns = get_data(tickers, start_date, end_date)
-    st.write(f"Data fetched for {len(tickers)} tickers.")
-    st.line_chart(data)
-
-# Portfolio metrics
-st.subheader("Portfolio Metrics")
-mean_returns, volatilities, sharpe_ratios = calculate_metrics(returns, risk_free_rate)
-metrics_df = pd.DataFrame({
-    "Mean Returns": mean_returns,
-    "Volatility": volatilities,
-    "Sharpe Ratio": sharpe_ratios
-}, index=tickers)
-st.table(metrics_df)
-
-# Data preparation
-scaler = MinMaxScaler()
-scaled_returns = scaler.fit_transform(returns)
-X, y = prepare_data(pd.DataFrame(scaled_returns, columns=returns.columns), lookback)
-X_train, y_train = X[:-100], y[:-100]
-X_test, y_test = X[-100:], y[-100:]
-
-# Train AI model
-st.subheader("Training AI Model")
-with st.spinner("Training the model..."):
-    input_size = len(tickers)
-    hidden_size = 64
-    output_size = len(tickers)
-    model = LSTMModel(input_size, hidden_size, output_size)
-    trained_model = train_model(model, X_train, y_train, mse_threshold)
-st.success("Model trained successfully!")
-
-# Hedge ratios
-st.subheader("Dynamic Hedging Recommendations")
-hedge_ratios = hedge_portfolio(trained_model, X_test, scaler, returns)
-hedge_df = pd.DataFrame(hedge_ratios, columns=tickers, index=data.index[-len(hedge_ratios):])
-st.line_chart(hedge_df)
-
-# Stress test
-st.subheader("Stress Test Results")
-stress_results = stress_test(returns)
-st.table(stress_results)
-
-# Footer
-st.sidebar.info("Created by an AI Assistant for Investment Banking Insights")
+if __name__ == "__main__":
+    main()
