@@ -7,7 +7,7 @@ import streamlit as st
 
 # Function to fetch data from Yahoo Finance
 def get_data(tickers, start_date, end_date):
-    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
+    data = yf.download(tickers, start=start_date, end=end_date)['Close']
     returns = data.pct_change().dropna()
     return data, returns
 
