@@ -1,0 +1,9 @@
+target/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+.env
+.venv/
+node_modules/
+dist/
