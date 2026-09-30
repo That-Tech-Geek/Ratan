@@ -66,7 +66,7 @@ impl RuleCrisisDetector {
     }
 }
 
-pub struct SafetyShield<M: CrisisModel = NoOpCrisisModel> {
+/// Lightweight contextual detector used as a second opinion beside deterministic rules.\npub struct LearnedCrisisDetector {\n    weights: std::collections::HashMap<String, f32>,\n    bias: f32,\n}\n\nimpl Default for LearnedCrisisDetector {\n    fn default() -> Self {\n        let mut weights = std::collections::HashMap::new();\n        for (token, weight) in [\n            ("suicide", 0.98), ("kill", 0.72), ("myself", 0.42), ("die", 0.62),\n            ("overdose", 0.91), ("selfharm", 0.95), ("hurt", 0.32), ("tonight", 0.16),\n            ("plan", 0.28), ("means", 0.22),\n        ] { weights.insert(token.to_string(), weight); }\n        Self { weights, bias: -1.35 }\n    }\n}\n\nimpl CrisisModel for LearnedCrisisDetector {\n    fn crisis_probability(&self, input: &str) -> f32 {\n        let normalized = input.to_lowercase().replace(['-', '/', '_'], " ");\n        let compact = normalized.replace(" ", "");\n        let mut z = self.bias;\n        for (token, weight) in &self.weights {\n            if normalized.split_whitespace().any(|t| t == token) || compact.contains(token) { z += *weight; }\n        }\n        let p = 1.0 / (1.0 + (-z).exp());\n        p.clamp(0.0, 1.0)\n    }\n}\n\npub struct SafetyShield<M: CrisisModel = NoOpCrisisModel> {
     rules: RuleCrisisDetector,
     model: M,
     crisis_threshold: f32,
