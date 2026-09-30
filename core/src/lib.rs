@@ -8,7 +8,7 @@ pub mod belief;
 pub mod expression;
 pub mod policy;
 pub mod runtime;
-pub mod safety;\npub mod evaluation;
+pub mod safety;\npub mod evaluation;\npub mod memory;
 pub mod storage;
 pub mod types;
 
