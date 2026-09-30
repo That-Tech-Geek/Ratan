@@ -1,0 +1,9 @@
+//! Longitudinal personalization with explicit dependency safeguards.
+use std::collections::HashMap;
+#[derive(Debug,Clone,Default)]pub struct UserProfile{pub preferences:HashMap<String,f32>,pub goals:Vec<String>,pub rejected_moves:Vec<String>,pub helpful_moves:Vec<String>,pub explicit_boundaries:Vec<String>}
+impl UserProfile{pub fn set_preference(&mut self,key:impl Into<String>,value:f32){self.preferences.insert(key.into(),value.clamp(-1.0,1.0));}pub fn record_move(&mut self,move_id:&str,helpful:bool){let target=if helpful{&mut self.helpful_moves}else{&mut self.rejected_moves};if !target.iter().any(|x|x==move_id){target.push(move_id.to_string());}}}
+#[derive(Debug,Clone,Copy,Default)]pub struct DependencySignals{pub exclusivity:f32,pub compulsive_frequency:f32,pub human_disengagement:f32}
+impl DependencySignals{pub fn risk_score(&self)->f32{(0.45*self.exclusivity+0.30*self.compulsive_frequency+0.25*self.human_disengagement).clamp(0.0,1.0)}pub fn requires_connection(&self)->bool{self.risk_score()>=0.65}}
+#[derive(Debug,Clone,Default)]pub struct PersonalizationEngine{pub profile:UserProfile}
+impl PersonalizationEngine{pub fn utility(&self,move_id:&str)->f32{let mut u=0.0;if self.profile.helpful_moves.iter().any(|x|x==move_id){u+=0.25;}if self.profile.rejected_moves.iter().any(|x|x==move_id){u-=0.35;}u}pub fn allowed(&self,move_id:&str)->bool{!self.profile.rejected_moves.iter().any(|x|x==move_id)&&!self.profile.explicit_boundaries.iter().any(|x|x==move_id)}}
+#[cfg(test)]mod tests{use super::*;#[test]fn rejected_move_is_not_allowed(){let mut e=PersonalizationEngine::default();e.profile.record_move("M04",false);assert!(!e.allowed("M04"));}#[test]fn dependency_signal_can_force_connection(){let s=DependencySignals{exclusivity:1.0,compulsive_frequency:0.8,human_disengagement:0.8};assert!(s.requires_connection());}}
