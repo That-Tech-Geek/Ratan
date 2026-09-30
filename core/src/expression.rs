@@ -44,7 +44,7 @@ impl TemplateRegistry {
 
 pub fn default_registry() -> TemplateRegistry {
     use MoveId::*;
-    let make = |move_id, text: &str| Template {
+    let make = |move_id: MoveId, text: &str| Template {
         template_id: format!("{}_V1", move_id.id()),
         move_id, text: text.to_string(), reviewer: "pending_clinician_review".into(), review_date: "unreviewed".into(),
     };
