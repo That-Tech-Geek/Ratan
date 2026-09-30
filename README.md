@@ -1,19 +1,40 @@
-# 🎈 Blank app template
+# Ratan
 
-A simple Streamlit app template for you to modify!
+A small Streamlit dashboard for market-data analysis, return modelling, and basic capital-efficiency calculations.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+## What it does
 
-### How to run it on your own machine
+- Downloads adjusted market prices with Yahoo Finance.
+- Calculates daily returns and displays price/return charts.
+- Shows the latest 10-year US Treasury yield when available.
+- Fits a simple linear regression to rolling return windows.
+- Calculates WACC and a simplified ROIC from user-supplied inputs.
 
-1. Install the requirements
+This is an analytical prototype, not an execution or investment-advice system.
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+## Run locally
 
-2. Run the app
+Requires Python 3.11+.
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+```bash
+python -m pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+## Project structure
+
+```
+.
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .gitignore
+├── LICENSE
+├── README.md
+├── requirements.txt
+└── streamlit_app.py
+```
+
+## Notes
+
+Yahoo Finance is an external data source and may be unavailable or delayed. The return model reports an in-sample fit metric only; it should not be interpreted as a validated trading strategy.
