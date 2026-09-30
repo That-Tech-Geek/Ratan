@@ -3,6 +3,7 @@
 //! The module boundaries mirror the product specification. Safety is deliberately
 //! separated from policy: the policy engine receives only clean inputs.
 
+pub mod api;
 pub mod belief;
 pub mod expression;
 pub mod policy;
