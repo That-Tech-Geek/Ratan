@@ -1,16 +1,21 @@
 //! Attune core runtime.
-//!
-//! The module boundaries mirror the product specification. Safety is deliberately
-//! separated from policy: the policy engine receives only clean inputs.
-
+//! Safety is separated from policy; adaptive and generative components never bypass hard gates.
 pub mod api;
 pub mod belief;
 pub mod expression;
 pub mod policy;
 pub mod runtime;
-pub mod safety;\npub mod evaluation;\npub mod memory;\npub mod state;\npub mod learning;\npub mod generation;\npub mod personalization;\npub mod privacy;\npub mod multimodal;
+pub mod safety;
+pub mod evaluation;
+pub mod memory;
+pub mod state;
+pub mod learning;
+pub mod generation;
+pub mod personalization;
+pub mod privacy;
+pub mod multimodal;
 pub mod storage;
 pub mod types;
-
-pub use runtime::{AttuneRuntime, TurnResponse};
-pub use types::{BeliefState, CheckInType, MoveId, Readiness};
+pub mod research;
+pub use runtime::{AttuneRuntime,TurnResponse};
+pub use types::{BeliefState,CheckInType,MoveId,Readiness};
