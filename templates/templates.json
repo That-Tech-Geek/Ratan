@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0-dev",
+  "status": "engineering-preview",
+  "templates": [
+    {"template_id":"M01_V1","move_id":"M01","text":"What feels most important to notice about this right now?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M02_V1","move_id":"M02","text":"That sounds really {emotion_word}. It makes sense that this would feel heavy.","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M03_V1","move_id":"M03","text":"Would it help to look at what happened just before that feeling showed up?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M04_V1","move_id":"M04","text":"Let’s pause and orient to what is around you right now. Try naming five things you can see.","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M05_V1","move_id":"M05","text":"What thought showed up, and what evidence supports it or complicates it?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M06_V1","move_id":"M06","text":"What is one small, realistic action that would move you toward something you value?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M07_V1","move_id":"M07","text":"Who is one person you could connect with outside this app today?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M08_V1","move_id":"M08","text":"I can share a short, general reflection on the pattern you described.","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M09_V1","move_id":"M09","text":"What would make this conversation useful for you today?","reviewer":"pending_clinician_review","review_date":"unreviewed"},
+    {"template_id":"M10_V1","move_id":"M10","text":"Here is a short summary of what you chose to focus on. What would you like to carry forward?","reviewer":"pending_clinician_review","review_date":"unreviewed"}
+  ]
+}
