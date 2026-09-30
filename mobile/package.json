@@ -1,0 +1,6 @@
+{
+  "name": "@attune/mobile-contract",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Framework-neutral mobile contract for Attune"
+}
