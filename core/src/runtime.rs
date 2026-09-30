@@ -25,6 +25,7 @@ pub struct AttuneRuntime<M: CrisisModel> {
     templates: TemplateRegistry,
     turn_index: u32,
     sessions_last_14_days: u32,
+    risk_latched: bool,
     audit: Vec<AuditEvent>,
 }
 
@@ -37,6 +38,7 @@ impl<M: CrisisModel> AttuneRuntime<M> {
             templates: default_registry(),
             turn_index: 0,
             sessions_last_14_days: 0,
+            risk_latched: false,
             audit: Vec::new(),
         }
     }
@@ -45,6 +47,7 @@ impl<M: CrisisModel> AttuneRuntime<M> {
         let safety = self.safety.pre_filter(input);
         match safety.decision {
             SafetyDecision::Crisis => {
+                self.risk_latched = true;
                 self.record("crisis", None, None, true, Some(safety.input_hash.clone()));
                 return TurnResponse {
                     template_id: "SAFETY_CRISIS_V1".into(),
@@ -69,6 +72,18 @@ impl<M: CrisisModel> AttuneRuntime<M> {
             SafetyDecision::Allow => {}
         }
 
+        if self.risk_latched {
+            self.record("risk_latched", None, None, true, Some(safety.input_hash.clone()));
+            return TurnResponse {
+                template_id: "SAFETY_CRISIS_V1".into(),
+                rendered_text: crisis_text().into(),
+                move_id: None,
+                crisis_triggered: true,
+                resource_injected: true,
+                input_hash: safety.input_hash,
+            };
+        }
+
         let state = self.belief.state(false);
         let selected = self.policy.choose(&state, self.turn_index, self.sessions_last_14_days);
         let output = self.templates.render(selected, &state).expect("all default moves have templates");
@@ -91,6 +106,14 @@ impl<M: CrisisModel> AttuneRuntime<M> {
 
     pub fn set_sessions_last_14_days(&mut self, count: u32) {
         self.sessions_last_14_days = count;
+    }
+
+    /// Start a new local session. A crisis latch is never cleared mid-session.
+    /// A future supervised flow should gate session reset on its own explicit
+    /// safety/review protocol rather than silently clearing the latch.
+    pub fn start_new_session(&mut self) {
+        self.turn_index = 0;
+        self.risk_latched = false;
     }
 
     pub fn belief_state(&self) -> BeliefState {
