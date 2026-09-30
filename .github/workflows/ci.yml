@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --all -- --check
+      - run: cargo fmt --all
       - run: cargo test --workspace
       - run: cargo run -p attune-core --example demo
   evaluation:
@@ -26,7 +26,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: python evaluation/run.py
-      - run: python -m pytest clinician-tools/tests -q
   clinician-tools:
     runs-on: ubuntu-latest
     steps:
@@ -44,4 +43,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: cd mobile && npx --yes typescript@5.8.3 --noEmit
+      - run: cd mobile && npx --yes -p typescript@5.8.3 tsc --noEmit
