@@ -1,0 +1,121 @@
+use crate::types::BeliefState;
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
+use thiserror::Error;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SafetyDecision {
+    Allow,
+    Crisis,
+    ScopeViolation,
+}
+
+#[derive(Debug, Clone)]
+pub struct SafetyResult {
+    pub decision: SafetyDecision,
+    pub input_hash: String,
+    pub resource_injected: bool,
+}
+
+#[derive(Debug, Error)]
+pub enum SafetyError {
+    #[error("safety configuration is invalid")]
+    InvalidConfiguration,
+}
+
+pub trait CrisisModel: Send + Sync {
+    fn crisis_probability(&self, input: &str) -> f32;
+}
+
+pub struct NoOpCrisisModel;
+
+impl CrisisModel for NoOpCrisisModel {
+    fn crisis_probability(&self, _input: &str) -> f32 { 0.0 }
+}
+
+pub struct RuleCrisisDetector {
+    crisis_terms: HashSet<&'static str>,
+    scope_terms: HashSet<&'static str>,
+}
+
+impl Default for RuleCrisisDetector {
+    fn default() -> Self {
+        Self {
+            crisis_terms: [
+                "kill myself", "suicide", "end my life", "self harm",
+                "hurt myself", "overdose", "want to die", "abuse me",
+            ].into_iter().collect(),
+            scope_terms: [
+                "diagnose me", "what medication should i take",
+                "medication dosage", "how much medication", "prescribe",
+            ].into_iter().collect(),
+        }
+    }
+}
+
+impl RuleCrisisDetector {
+    pub fn detect(&self, input: &str) -> SafetyDecision {
+        let normalized = input.trim().to_lowercase();
+        if self.crisis_terms.iter().any(|x| normalized.contains(x)) {
+            return SafetyDecision::Crisis;
+        }
+        if self.scope_terms.iter().any(|x| normalized.contains(x)) {
+            return SafetyDecision::ScopeViolation;
+        }
+        SafetyDecision::Allow
+    }
+}
+
+pub struct SafetyShield<M: CrisisModel = NoOpCrisisModel> {
+    rules: RuleCrisisDetector,
+    model: M,
+    crisis_threshold: f32,
+}
+
+impl<M: CrisisModel> SafetyShield<M> {
+    pub fn new(model: M, crisis_threshold: f32) -> Result<Self, SafetyError> {
+        if !(0.0..=1.0).contains(&crisis_threshold) {
+            return Err(SafetyError::InvalidConfiguration);
+        }
+        Ok(Self { rules: RuleCrisisDetector::default(), model, crisis_threshold })
+    }
+
+    pub fn pre_filter(&self, input: &str) -> SafetyResult {
+        let input_hash = hash_input(input);
+        let rule_decision = self.rules.detect(input);
+        if rule_decision == SafetyDecision::Crisis {
+            return SafetyResult { decision: SafetyDecision::Crisis, input_hash, resource_injected: true };
+        }
+        if self.model.crisis_probability(input) >= self.crisis_threshold {
+            return SafetyResult { decision: SafetyDecision::Crisis, input_hash, resource_injected: true };
+        }
+        if rule_decision == SafetyDecision::ScopeViolation {
+            return SafetyResult { decision: SafetyDecision::ScopeViolation, input_hash, resource_injected: false };
+        }
+        SafetyResult { decision: SafetyDecision::Allow, input_hash, resource_injected: false }
+    }
+
+    pub fn post_filter(&self, template_id: &str, registered: bool) -> bool {
+        registered && !template_id.is_empty()
+    }
+
+    pub fn apply_risk(&self, state: &mut BeliefState, result: &SafetyResult) {
+        state.risk_flag = matches!(result.decision, SafetyDecision::Crisis);
+        state.clamp();
+    }
+}
+
+pub fn hash_input(input: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    let digest = hasher.finalize();
+    format!("{:02x}{:02x}{:02x}{:02x}", digest[0], digest[1], digest[2], digest[3])
+}
+
+pub fn crisis_text() -> &'static str {
+    "I’m not a crisis service. If you may be in immediate danger or might hurt yourself, contact local emergency services or a local crisis service now. If you can, move toward another person you trust. Try the 5-4-3-2-1 grounding exercise while you get support."
+}
+
+pub fn scope_refusal_text() -> &'static str {
+    "I can help you reflect on what you’re experiencing, but I can’t diagnose conditions or advise on medication or dosage. A qualified clinician or pharmacist can help with those questions."
+}
