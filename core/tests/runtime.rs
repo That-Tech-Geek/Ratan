@@ -35,3 +35,17 @@ fn dependence_cap_routes_to_human_connection() {
     let response = runtime.process_turn("I want to talk about something.");
     assert_eq!(response.move_id.as_deref(), Some("M07"));
 }
+
+#[test]
+fn crisis_latch_blocks_policy_until_new_session() {
+    let mut runtime = AttuneRuntime::new(attune_core::safety::NoOpCrisisModel);
+    let _ = runtime.process_turn("I want to kill myself.");
+    let response = runtime.process_turn("I feel a little better.");
+    assert!(response.crisis_triggered);
+    assert!(response.move_id.is_none());
+
+    runtime.start_new_session();
+    let response = runtime.process_turn("I feel a little better.");
+    assert!(!response.crisis_triggered);
+    assert!(response.move_id.is_some());
+}
