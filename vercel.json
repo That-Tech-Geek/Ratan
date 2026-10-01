@@ -1,8 +1,30 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "clinician-tools",
+          "format": "url",
+          "env": "CLINICIAN_TOOLS_URL"
+        }
+      ]
+    },
+    "clinician-tools": {
+      "root": "clinician-tools",
+      "framework": "fastapi",
+      "entrypoint": "main:app"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
   ]
 }
