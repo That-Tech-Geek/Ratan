@@ -18,6 +18,20 @@ The MVP is intentionally lightweight. It is designed to answer product questions
 
 It does not claim trained-model performance. No GPU, model weights, backend, or network connection is required.
 
+## Web app
+
+The simplest frontend lives in `app/` and is ready for Vercel.
+
+    npm install
+    npm run dev
+
+For production:
+
+    npm run build
+    npm start
+
+To deploy, import the GitHub repository into Vercel and keep the detected Next.js defaults. `vercel.json` is included as the deployment hint. The current web app is intentionally a frontend-only demo: there is no API, database, authentication, or model endpoint yet.
+
 ## Architecture
 
 mobile -> runtime -> safety -> belief -> policy -> expression
