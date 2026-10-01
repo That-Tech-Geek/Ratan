@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attune</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f7f4;color:#20211f;font:15px system-ui,sans-serif}main{max-width:720px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:24px 16px}header{padding:12px 0 20px}h1{font-size:20px;margin:0}p{color:#777;margin:4px 0}.chat{flex:1;padding:16px 0;overflow:auto}.bubble{max-width:82%;padding:12px 14px;border-radius:16px;margin:10px 0;white-space:pre-wrap}.bot{background:#eaeae5}.user{margin-left:auto;background:#dce9e0}form{display:flex;gap:8px;border-top:1px solid #ddd;padding-top:12px}input{min-width:0;flex:1;border:1px solid #ccc;border-radius:14px;padding:13px;font:inherit;background:white}button{border:0;border-radius:14px;padding:0 18px;background:#20211f;color:white;font-weight:600}footer{font-size:11px;color:#999;padding-top:10px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Attune</h1><p>A small, private space to think things through.</p></header>
+<section id="chat" class="chat"><div class="bubble bot">Hi. What's on your mind?</div></section>
+<form id="form"><input id="input" autocomplete="off" placeholder="Write something…"><button>Send</button></form>
+<footer>Research preview · not medical care</footer>
+</main>
+<script>
+const chat=document.getElementById("chat"),input=document.getElementById("input");
+const crisis=/\b(kill myself|suicide|end my life|self harm|hurt myself|overdose|want to die)\b/i;
+const scope=/\b(diagnose me|what medication should i take|medication dosage|how much medication|prescribe)\b/i;
+function say(text,who){const d=document.createElement("div");d.className="bubble "+who;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+function reply(x){
+ if(crisis.test(x)) return "This sounds urgent. If you may act on thoughts of harming yourself, contact local emergency services or a crisis service now and stay with another person if you can. I can keep listening, but I can't provide emergency care.";
+ if(scope.test(x)) return "I can help you think through what you're experiencing and prepare questions for a professional, but I can't diagnose, prescribe medication, or give dosages.";
+ if(/overwhelmed|stressed|anxious|sad|lonely|tired/i.test(x)) return "That sounds like a lot. What part of it feels hardest right now?";
+ if(/good|better|happy|proud|excited/i.test(x)) return "That sounds positive. What do you think helped?";
+ return "I'm listening. What would you most like to understand or change about this?";
+}
+document.getElementById("form").onsubmit=e=>{e.preventDefault();const x=input.value.trim();if(!x)return;say(x,"user");input.value="";setTimeout(()=>say(reply(x),"bot"),120)};
+</script>
+</body>
+</html>
