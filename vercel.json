@@ -1,1 +1,8 @@
-{"framework":"nextjs","buildCommand":"npm run build","devCommand":"npm run dev"}
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/frontend/$1" }
+  ]
+}
