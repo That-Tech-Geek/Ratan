@@ -15,7 +15,7 @@ export async function closeDb() {
 }
 
 export async function assertSchemaVersion(expected: string) {
-  const rows = await db()\`SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1\`;
+  const rows = await db()`SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1`;
   if (rows[0]?.version !== expected) {
     throw new Error(`Schema mismatch: expected ${expected}, got ${rows[0]?.version ?? "none"}`);
   }
