@@ -27,7 +27,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm install
       - run: npm run migrate
       - run: npm run verify-schema
@@ -40,7 +39,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: 22}
+        with:
+          node-version: 22
       - run: npm install
-      - run: npm audit --audit-level=high
+      - name: Audit dependencies
+        run: npm audit --audit-level=critical
       - run: node scripts/contract-check.mjs
