@@ -2,9 +2,30 @@ import postgres from "postgres";
 
 let client: ReturnType<typeof postgres> | null = null;
 
+function databaseUrl() {
+  return (
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.POSTGRES_PRISMA_URL ??
+    process.env.POSTGRES_URL_NON_POOLING
+  );
+}
+
 export function db() {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
-  return client ??= postgres(process.env.DATABASE_URL, { max: 5, prepare: false });
+  const url = databaseUrl();
+  if (!url) {
+    throw new Error(
+      "A PostgreSQL connection is required: set DATABASE_URL or a Vercel/Supabase POSTGRES_* variable.",
+    );
+  }
+
+  client ??= postgres(url, {
+    max: 1,
+    prepare: false,
+    ssl: "require",
+  });
+
+  return client;
 }
 
 export async function closeDb() {

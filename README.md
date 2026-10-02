@@ -30,11 +30,16 @@ The repository is intentionally a single deployable application. There is no sep
 
 Import this repository into Vercel and use the default Next.js build settings.
 
-Required environment variable:
+Database configuration is compatible with the Vercel Supabase integration. The application accepts the following variables, in order:
 
-- `DATABASE_URL`: PostgreSQL connection string from a Vercel-compatible Postgres provider.
+- `DATABASE_URL` for an explicit application connection.
+- `POSTGRES_URL` for the Vercel/Supabase pooled connection.
+- `POSTGRES_PRISMA_URL` as a fallback.
+- `POSTGRES_URL_NON_POOLING` as a final fallback.
 
-The application lazily creates its MVP tables on the first persistence request. For production, move this schema into a managed migration pipeline once the database provider is fixed.
+The Vercel Supabase integration provisions `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, and `POSTGRES_URL_NON_POOLING` automatically. The runtime uses a single Postgres.js connection per warm serverless instance, disables prepared statements, and requires TLS.
+
+Migrations use `DATABASE_URL` first and otherwise prefer `POSTGRES_URL_NON_POOLING`, so the same repository works in GitHub Actions and against the linked Supabase project. Run `npm run migrate` once against the target Supabase database before using authenticated persistence routes.
 
 ## Development
 
@@ -48,4 +53,4 @@ npm test
 
 ## MVP boundaries
 
-Firebase OTP, WhatsApp Business, object storage, PDF generation, production authentication/authorization, teacher dashboards, and advanced reporting are explicit next-phase integrations rather than mocked dependencies.
+Firebase OTP remains the application authentication layer; Supabase is the PostgreSQL persistence layer. WhatsApp Business, object storage, PDF generation, and advanced reporting remain separate integrations.
