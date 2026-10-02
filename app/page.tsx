@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { db, enqueue, getClientSessionId } from "../lib/offline";
+import { db, enqueue, getDiagnosticSession } from "../lib/offline";
 import { getCachedQuestions, putCachedQuestions } from "../lib/browser-cache";
 
 type Question = { id: string; prompt: string; options: string[] };
@@ -25,7 +25,7 @@ async function loadQuestions() {
 }
 
 async function flushQueue() {
-  if (!navigator.onLine) return 0;
+  if (!navigator.onLine) return 0;\n  const session = await getDiagnosticSession();\n  if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return 0;
   await db.queue.where("status").equals("syncing").modify({ status: "pending" });
   const pending = (await db.queue.where("status").anyOf("pending", "failed").sortBy("createdAt")).filter((item) => item.retryCount < 5);
   let accepted = 0;
@@ -40,7 +40,7 @@ async function flushQueue() {
       const response = await fetch("/api/v1/sync/batch", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: batch }),
+        body: JSON.stringify({ session_id: session.sessionId, session_token: session.sessionToken, items: batch }),
       });
       if (!response.ok) throw new Error("sync_failed");
       const result = (await response.json()) as { idempotency_ids?: string[] };
@@ -82,7 +82,7 @@ export default function Home() {
   const [queued, setQueued] = useState(0);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"network" | "cache" | "none">("none");
-  const [done, setDone] = useState(false);\n  const [startedAt] = useState(() => Date.now());\n  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [done, setDone] = useState(false);\n  const [startedAt] = useState(() => Date.now());\n
 
   useEffect(() => {
     let mounted = true;
@@ -143,7 +143,7 @@ export default function Home() {
     await enqueue({
       entity: "diagnostic_response",
       action: "create",
-      payload: { session_id: sessionId, question_id: q.id, selected_option: option, response_time_ms: Math.max(0, Date.now() - startedAt) },
+      payload: { question_id: q.id, selected_option: option, response_time_ms: Math.max(0, Date.now() - startedAt) },
     });
     setQueued(await db.queue.count());
 
