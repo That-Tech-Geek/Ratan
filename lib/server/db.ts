@@ -18,14 +18,14 @@ export function db() {
       "A PostgreSQL connection is required: set DATABASE_URL or a Vercel/Supabase POSTGRES_* variable.",
     );
   }
-  return (
-    client ??
-   = postgres(url, {
-      max: 1,
-      prepare: false,
-      ssl: "require",
-    })
-  );
+
+  client ??= postgres(url, {
+    max: 1,
+    prepare: false,
+    ssl: "require",
+  });
+
+  return client;
 }
 
 export async function closeDb() {
