@@ -11,7 +11,7 @@ const requiredTables = [
 
 const requiredColumns = {
   diagnostic_sessions: ["client_session_id","session_token_hash","issued_at","expires_at"],
-  diagnostic_responses: ["sync_event_id"],
+  diagnostic_responses: ["sync_event_id"],\n  diagnostic_sessions: ["class_no","subject","question_ids"],
   consents: ["withdrawn_at"],
   audit_logs: ["school_id"],
 };
@@ -38,7 +38,7 @@ try {
   }
 
   const versions = await sql\`SELECT version FROM schema_migrations ORDER BY version\`;
-  if (versions.length !== 4 || versions.at(-1)?.version !== "004_sync_materialization") {
+  if (versions.length !== 5 || versions.at(-1)?.version !== "005_diagnostic_selection") {
     throw new Error("Unexpected migration state");
   }
 
