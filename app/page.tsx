@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { db, enqueue } from "../lib/offline";
+import { db, enqueue, getClientSessionId } from "../lib/offline";
 import { getCachedQuestions, putCachedQuestions } from "../lib/browser-cache";
 
 type Question = { id: string; prompt: string; options: string[] };
@@ -26,7 +26,8 @@ async function loadQuestions() {
 
 async function flushQueue() {
   if (!navigator.onLine) return 0;
-  const pending = await db.queue.where("status").equals("pending").sortBy("createdAt");
+  await db.queue.where("status").equals("syncing").modify({ status: "pending" });
+  const pending = (await db.queue.where("status").anyOf("pending", "failed").sortBy("createdAt")).filter((item) => item.retryCount < 5);
   let accepted = 0;
 
   for (let offset = 0; offset < pending.length; offset += BATCH_SIZE) {
@@ -81,12 +82,12 @@ export default function Home() {
   const [queued, setQueued] = useState(0);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"network" | "cache" | "none">("none");
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(false);\n  const [startedAt] = useState(() => Date.now());\n  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const refresh = async () => {
+    const refresh = async () => {\n      if (!sessionId) setSessionId(await getClientSessionId());
       if (!mounted) return;
       setOnline(navigator.onLine);
       setQueued(await db.queue.count());
@@ -142,7 +143,7 @@ export default function Home() {
     await enqueue({
       entity: "diagnostic_response",
       action: "create",
-      payload: { question_id: q.id, selected_option: option },
+      payload: { session_id: sessionId, question_id: q.id, selected_option: option, response_time_ms: Math.max(0, Date.now() - startedAt) },
     });
     setQueued(await db.queue.count());
 
