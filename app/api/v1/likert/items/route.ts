@@ -1,0 +1,2 @@
+import {LIKERT} from "../../../../../lib/questions";
+export async function GET(request:Request){const language=new URL(request.url).searchParams.get("language")||"en";return Response.json({version:"1",language,items:LIKERT});}
