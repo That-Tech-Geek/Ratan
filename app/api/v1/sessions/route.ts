@@ -1,7 +1,7 @@
-import { requireConsent, requireStudentAccess, requireTeacher } from "../../../../../lib/server/auth";
-import { db } from "../../../../../lib/server/db";
-import { issueSessionToken, hashSessionToken, sessionExpiry } from "../../../../../lib/server/session-token";
-import { QUESTIONS } from "../../../../../lib/questions";
+import { requireConsent, requireStudentAccess, requireTeacher } from "../../../../lib/server/auth";
+import { db } from "../../../../lib/server/db";
+import { issueSessionToken, hashSessionToken, sessionExpiry } from "../../../../lib/server/session-token";
+import { QUESTIONS } from "../../../../lib/questions";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
