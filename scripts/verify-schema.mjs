@@ -11,7 +11,8 @@ const requiredTables = [
 
 const requiredColumns = {
   diagnostic_sessions: ["client_session_id","session_token_hash","issued_at","expires_at"],
-  diagnostic_responses: ["sync_event_id"],\n  diagnostic_sessions: ["class_no","subject","question_ids"],
+  diagnostic_responses: ["sync_event_id"],
+  diagnostic_sessions: ["class_no","subject","question_ids"],
   consents: ["withdrawn_at"],
   audit_logs: ["school_id"],
 };
