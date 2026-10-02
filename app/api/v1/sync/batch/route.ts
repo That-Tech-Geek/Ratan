@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const sessionRows = await db()\`
-      SELECT ds.id, ds.student_id, ds.school_id, ds.expires_at, ds.session_token_hash
+      SELECT ds.id, ds.student_id, s.school_id, ds.expires_at, ds.session_token_hash
       FROM diagnostic_sessions ds
       JOIN students s ON s.id = ds.student_id
       JOIN teachers t ON t.school_id = s.school_id
