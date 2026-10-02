@@ -1,0 +1,2 @@
+import {QUESTIONS} from "../../../../../lib/questions";
+export async function GET(request:Request){const u=new URL(request.url),cls=Number(u.searchParams.get("class")||8),subject=u.searchParams.get("subject")||"maths";return Response.json({version:"1",class:cls,subject,questions:QUESTIONS.filter(q=>q.class===cls&&q.subject===subject)});}
