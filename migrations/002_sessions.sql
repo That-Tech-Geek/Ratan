@@ -1,5 +1,3 @@
-BEGIN;
-
 ALTER TABLE diagnostic_sessions
   ADD COLUMN IF NOT EXISTS client_session_id UUID UNIQUE,
   ADD COLUMN IF NOT EXISTS session_token_hash VARCHAR(64),
@@ -19,5 +17,3 @@ CREATE INDEX IF NOT EXISTS idx_diagnostic_sessions_client ON diagnostic_sessions
 ALTER TABLE diagnostic_responses
   ADD CONSTRAINT fk_diagnostic_response_sync_event
   FOREIGN KEY (sync_event_id) REFERENCES sync_events(id);
-
-COMMIT;
