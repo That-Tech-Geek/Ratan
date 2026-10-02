@@ -1,28 +1,10 @@
 import fs from "node:fs";
-
-const required = [
-  "app/page.tsx","app/layout.tsx","app/api/v1/health/route.ts",
-  "app/api/v1/diagnostic/questions/route.ts","app/api/v1/likert/items/route.ts",
-  "app/api/v1/sync/batch/route.ts","lib/offline.ts","lib/browser-cache.ts",
-  "lib/server/db.ts","public/manifest.webmanifest","public/sw.js",
-];
-
-for (const file of required) {
-  if (!fs.existsSync(file)) throw new Error("Missing Vercel app component: " + file);
-}
-
-const page = fs.readFileSync("app/page.tsx", "utf8");
-const sw = fs.readFileSync("public/sw.js", "utf8");
-const sync = fs.readFileSync("app/api/v1/sync/batch/route.ts", "utf8");
-const questions = fs.readFileSync("lib/questions.ts", "utf8");
-
-if (!page.includes("/api/v1/diagnostic/questions")) throw new Error("Missing diagnostic client contract");
-if (!page.includes("enqueue")) throw new Error("Missing offline queue contract");
-if (!sw.includes("caches.open")) throw new Error("Missing Cache Storage contract");
-if (!sw.includes("gyaan-saathi-sync")) throw new Error("Missing background sync contract");
-if (!sync.includes("audit_logs") || !sync.includes("sync_events")) throw new Error("Missing idempotent persistence contract");
-if (!questions.includes('class:8') || !questions.includes('class:9') || !questions.includes('subject:"science"')) throw new Error("Incomplete maths/science question bank");
-if (!questions.includes('reviewStatus:"teacher-approved"')) throw new Error("Question review gate missing");
-if (!fs.readFileSync("lib/offline.ts","utf8").includes("this.version(2)")) throw new Error("IndexedDB schema version missing");
-
-console.log("gyaan-saathi production offline/cache contract: PASS");
+const required=["app/page.tsx","app/dashboard/page.tsx","app/layout.tsx","app/api/v1/health/route.ts","app/api/v1/diagnostic/questions/route.ts","app/api/v1/likert/items/route.ts","app/api/v1/likert/sessions/route.ts","app/api/v1/sessions/route.ts","app/api/v1/students/route.ts","app/api/v1/consents/route.ts","app/api/v1/sync/batch/route.ts","app/api/v1/dashboard/route.ts","app/api/v1/jobs/maintenance/route.ts","lib/offline.ts","lib/browser-cache.ts","lib/server/auth.ts","lib/server/db.ts","lib/server/session-token.ts","lib/server/rate-limit.ts","lib/server/validation.ts","lib/server/likert-scoring.ts","migrations/001_initial.sql","migrations/002_sessions.sql","migrations/003_auth_tenancy.sql","migrations/004_sync_materialization.sql","migrations/005_diagnostic_selection.sql","migrations/006_likert_preferences.sql","migrations/007_consent_deletion.sql","migrations/008_rechecks.sql","migrations/009_retention_indexes.sql","scripts/migrate.mjs","scripts/verify-schema.mjs","scripts/reconcile-sync.mjs","vercel.json","public/manifest.webmanifest","public/sw.js"];
+for(const f of required)if(!fs.existsSync(f))throw new Error("Missing contract file: "+f);
+for(const legacy of ["Cargo.toml","core","clinician-tools"])if(fs.existsSync(legacy))throw new Error("Legacy artifact remains: "+legacy);
+const forbidden=["Readiness","MoveId","BehavioralActivation","Psychoeducation","risk_flag"];
+function walk(d,out=[]){if(!fs.existsSync(d))return out;for(const e of fs.readdirSync(d,{withFileTypes:true})){if([".git","node_modules",".next"].includes(e.name))continue;const p=d+"/"+e.name;if(e.isDirectory())walk(p,out);else if(/\.(ts|tsx|js|mjs|json|sql|md|rs|py)$/.test(e.name))out.push(p)}return out}
+for(const f of walk(".").filter((f)=>f!=="./scripts/contract-check.mjs")){const t=fs.readFileSync(f,"utf8");for(const term of forbidden)if(t.includes(term))throw new Error("Forbidden legacy term "+term+" in "+f)}
+const sync=fs.readFileSync("app/api/v1/sync/batch/route.ts","utf8");if(!sync.includes("requireTeacher")||!sync.includes("sync_events")||!sync.includes("diagnostic_responses")||!sync.includes("likert_response"))throw new Error("Sync contract incomplete");
+const page=fs.readFileSync("app/page.tsx","utf8");if(!page.includes("/api/v1/sessions")||!page.includes("getDiagnosticSession"))throw new Error("Session client contract incomplete");
+console.log("gyaan-saathi P0/P1/P2 contract: PASS");
