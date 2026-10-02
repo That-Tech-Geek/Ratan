@@ -1,80 +1,58 @@
-# Attune
+# Gyaan Saathi
 
-Privacy-first, on-device mental wellness companion built around a deterministic safety boundary, deterministic belief state, bounded contextual bandit policy, and clinician-authored template expression layer.
-
-> Engineering preview. This repository is an implementation scaffold and research harness, not a clinical device and not a substitute for professional care.
-
-## MVP: try it before spending GPU hours
-
-The repository now includes a zero-dependency browser research preview in demo/index.html.
-
-Run:
-
-    python -m http.server 8000 --directory demo
-
-Then open http://localhost:8000.
-
-The MVP is intentionally lightweight. It is designed to answer product questions first: does the interaction feel useful, is the safety UX understandable, are the visible signals helpful, and what should be trained next?
-
-It does not claim trained-model performance. No GPU, model weights, backend, or network connection is required.
-
-## Web app
-
-The simplest frontend lives in `app/` and is ready for Vercel.
-
-    npm install
-    npm run dev
-
-For production:
-
-    npm run build
-    npm start
-
-To deploy, import the GitHub repository into Vercel and keep the detected Next.js defaults. `vercel.json` is included as the deployment hint. The current web app is intentionally a frontend-only demo: there is no API, database, authentication, or model endpoint yet.
+Offline-first learning diagnostics for low-end Android devices and intermittent 2G/3G connectivity.
 
 ## Architecture
 
-mobile -> runtime -> safety -> belief -> policy -> expression
+```
+Student / Teacher / Volunteer PWA
+        |
+        v
+Service Worker + IndexedDB
+        |
+        v
+Sync queue (20 items, retry <= 5)
+        |
+ HTTPS when online
+        v
+Django REST API
+        |
+        v
+PostgreSQL
+```
 
-- Layer 0: hard pre/post safety shield. Vetoed inputs/actions never reach the policy selector.
-- Layer 1: deterministic belief state with bounded valence/arousal updates, alliance, readiness, risk, and session momentum.
-- Layer 2: bounded adaptive policy with explicit utility penalties and feasibility masks.
-- Layer 3: deterministic template registry and slot filler.
-- Storage boundary: typed local-store interface with in-memory and SQLite implementation boundaries.
-- Adapters: model inference, mobile bindings, sync, and clinician tooling are explicit interfaces.
+The browser owns the offline experience. The server is the durable system of record. Diagnostic and Likert responses are append-oriented and the sync API is idempotency-aware.
 
-## Repository
+## Implemented MVP data flow
 
-    attune/
-    ├── core/                 # Rust runtime
-    ├── clinician-tools/      # Python template/evaluation tooling
-    ├── mobile/               # framework-neutral TypeScript contract
-    ├── templates/            # versioned clinician-authored template registry
-    ├── demo/                 # zero-dependency browser MVP
-    ├── docs/
-    └── .github/workflows/
+- React + Vite PWA shell with installable service worker.
+- Dexie/IndexedDB queue for offline writes.
+- Queue flush on app open, `online`, and `visibilitychange`.
+- Django API contracts for health, diagnostic questions, and batch sync.
+- Relational models for schools, anonymised students, consent, diagnostic sessions/responses, Likert sessions/responses, learning preferences, gap reports, re-checks, guidance cards, and audit logs.
+- CI runs frontend typecheck/build, backend Django tests, and cross-layer API contract checks.
 
-## Run the research stack
+## Deliberate boundaries
 
-    cargo test --workspace
-    cargo run -p attune-core --example demo
-    python -m clinician_tools.validate_templates templates/templates.json
+The source specification calls for Firebase phone OTP, WhatsApp Business API, S3-compatible storage, PDF generation, and managed PostgreSQL. Those external integrations are not faked in this migration. They should be added behind explicit service interfaces after the core offline/sync path is stable.
 
-The default Rust build has no model downloads, network calls, or cloud dependencies.
+No student login, open-ended AI tutor, real-time chat, gamification, location tracking, or native app is part of this MVP boundary.
 
-## What comes after feedback
+## Development
 
-The expensive research phase is deliberately separated from the MVP:
+Frontend:
+```
+npm install
+npm run dev
+```
 
-1. Collect governed evaluation data.
-2. Benchmark the current deterministic baseline.
-3. Train and calibrate a crisis classifier.
-4. Add real embedding retrieval and longitudinal modeling.
-5. Run policy and response-model evaluations.
-6. Spend GPU hours only on the components where the benchmark shows headroom.
+Backend:
+```
+cd backend
+python -m venv .venv
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py test
+```
 
-## Safety implementation boundary
-
-The bundled crisis detector is intentionally a conservative rule-based development implementation. The production INT8 classifier described by the product specification is represented by the CrisisModel trait and must be validated against a clinician-authored dataset before production use.
-
-No claim about crisis recall, false-positive rate, clinical efficacy, or regulatory status is made by this repository.
+Environment variables for production include `DJANGO_SECRET_KEY`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, and optionally `VITE_API_URL`.
