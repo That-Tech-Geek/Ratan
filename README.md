@@ -53,4 +53,4 @@ npm test
 
 ## MVP boundaries
 
-Firebase OTP remains the application authentication layer; Supabase is the PostgreSQL persistence layer. WhatsApp Business, object storage, PDF generation, and advanced reporting remain separate integrations.
+Supabase is the only backend platform: Supabase Auth handles teacher OTP authentication and Supabase Postgres handles persistence. WhatsApp Business, object storage, PDF generation, and advanced reporting remain separate integrations.

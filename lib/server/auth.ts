@@ -1,34 +1,40 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+import { createClient } from "@supabase/supabase-js";
 import { db } from "./db";
 
-function firebaseAuth() {
-  if (!getApps().length) {
-    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? process.env.CREDS;
-    if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON or CREDS is required");
-    const credentials = JSON.parse(raw);
-    initializeApp({ credential: cert(credentials) });
-  }
-  return getAuth();
+function supabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase server credentials are required");
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
 export async function requireTeacher(request: Request) {
   const header = request.headers.get("authorization");
-  if (!header?.startsWith("Bearer ")) throw new Response("Unauthorized", {status:401});
+  if (!header?.startsWith("Bearer ")) throw new Response("Unauthorized", { status: 401 });
+
   try {
-    const decoded = await firebaseAuth().verifyIdToken(header.slice(7), true);
+    const token = header.slice(7);
+    const { data, error } = await supabaseAdmin().auth.getUser(token);
+    if (error || !data.user) throw new Response("Unauthorized", { status: 401 });
+
     const rows = await db()`
       SELECT id, school_id, role
       FROM teachers
-      WHERE firebase_uid = ${decoded.uid} AND active = TRUE
+      WHERE auth_user_id = ${data.user.id} AND active = TRUE
       LIMIT 1
     `;
     const teacher = rows[0];
-    if (!teacher) throw new Response("Forbidden", {status:403});
-    return {uid: decoded.uid, teacherId: Number(teacher.id), schoolId: Number(teacher.school_id), role: teacher.role as string};
+    if (!teacher) throw new Response("Forbidden", { status: 403 });
+
+    return {
+      uid: data.user.id,
+      teacherId: Number(teacher.id),
+      schoolId: Number(teacher.school_id),
+      role: teacher.role as string,
+    };
   } catch (error) {
     if (error instanceof Response) throw error;
-    throw new Response("Unauthorized", {status:401});
+    throw new Response("Unauthorized", { status: 401 });
   }
 }
 
@@ -40,8 +46,8 @@ export async function requireStudentAccess(teacherId: number, studentId: number)
     WHERE t.id = ${teacherId} AND s.id = ${studentId} AND t.active = TRUE
     LIMIT 1
   `;
-  if (!rows[0]) throw new Response("Forbidden", {status:403});
-  return {studentId:Number(rows[0].id), schoolId:Number(rows[0].school_id), classNo:Number(rows[0].class_no)};
+  if (!rows[0]) throw new Response("Forbidden", { status: 403 });
+  return { studentId: Number(rows[0].id), schoolId: Number(rows[0].school_id), classNo: Number(rows[0].class_no) };
 }
 
 export async function requireConsent(studentId: number) {
@@ -54,5 +60,5 @@ export async function requireConsent(studentId: number) {
     ORDER BY recorded_at DESC
     LIMIT 1
   `;
-  if (!rows[0]) throw new Response("Consent required", {status:403});
+  if (!rows[0]) throw new Response("Consent required", { status: 403 });
 }

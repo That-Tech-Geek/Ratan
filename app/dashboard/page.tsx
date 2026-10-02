@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 
-import {subscribeAuth,currentIdToken,signOutUser} from "../../lib/firebase-client";
+import {subscribeAuth,currentIdToken,signOutUser} from "../../lib/supabase-client";
 export default function Dashboard(){const[user,setUser]=useState<any>(null),[data,setData]=useState<any>(null),[error,setError]=useState("");
 useEffect(()=>subscribeAuth(setUser),[]);
 useEffect(()=>{if(user)void (async()=>{const t=await currentIdToken();if(!t)return;const r=await fetch("/api/v1/dashboard",{headers:{Authorization:"Bearer "+t}});if(r.ok)setData(await r.json());else setError("dashboard_unavailable");})();},[user]);
