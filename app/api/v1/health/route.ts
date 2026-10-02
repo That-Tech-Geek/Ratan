@@ -1,0 +1,1 @@
+export async function GET(){return Response.json({service:"gyaan-saathi-web",status:"ok"});}

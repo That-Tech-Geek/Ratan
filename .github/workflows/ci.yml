@@ -3,42 +3,13 @@ on:
   push:
   pull_request:
 jobs:
-  frontend:
+  app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+        with: {node-version: 22}
       - run: npm install
       - run: npm run typecheck
       - run: npm run build
-      - run: npm run test:e2e
-  backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - run: python manage.py makemigrations --check
-      - run: python manage.py test
-        env:
-          CI: "true"
-          DJANGO_SECRET_KEY: ci-secret
-  data-flow:
-    runs-on: ubuntu-latest
-    needs: [frontend, backend]
-    steps:
-      - uses: actions/checkout@v4
-      - run: test -f backend/gyaan/models.py
-      - run: test -f src/sync.ts
-      - run: grep -q '/api/v1/sync/batch/' src/api.ts
-      - run: grep -q 'api/v1/sync/batch/' backend/config/urls.py
-      - run: grep -q '/api/v1/diagnostic/questions' src/api.ts
-      - run: grep -q 'api/v1/diagnostic/questions' backend/config/urls.py
-      - run: grep -q 'api/v1/likert/items' backend/config/urls.py
+      - run: npm test

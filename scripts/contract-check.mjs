@@ -1,40 +1,7 @@
 import fs from "node:fs";
-
-const requiredFiles = [
-  "backend/config/settings.py",
-  "backend/config/urls.py",
-  "backend/gyaan/models.py",
-  "backend/gyaan/api.py",
-  "src/db.ts",
-  "src/sync.ts",
-];
-
-for (const file of requiredFiles) {
-  if (!fs.existsSync(file)) {
-    throw new Error("Missing data-flow component: " + file);
-  }
-}
-
-const urls = fs.readFileSync("backend/config/urls.py", "utf8");
-const client = fs.readFileSync("src/api.ts", "utf8");
-
-for (const path of [
-  "api/v1/sync/batch/",
-  "api/v1/diagnostic/questions",
-  "api/v1/likert/items",
-]) {
-  if (!urls.includes(path)) {
-    throw new Error("Missing backend route contract: /" + path);
-  }
-}
-
-for (const path of [
-  "/api/v1/sync/batch/",
-  "/api/v1/diagnostic/questions",
-]) {
-  if (!client.includes(path)) {
-    throw new Error("Missing frontend API contract: " + path);
-  }
-}
-
-console.log("data-flow contract: PASS");
+const required=["app/page.tsx","app/layout.tsx","app/api/v1/health/route.ts","app/api/v1/diagnostic/questions/route.ts","app/api/v1/likert/items/route.ts","app/api/v1/sync/batch/route.ts","lib/offline.ts","lib/server/db.ts","public/manifest.webmanifest"];
+for(const f of required)if(!fs.existsSync(f))throw new Error("Missing Vercel app component: "+f);
+const page=fs.readFileSync("app/page.tsx","utf8"),sync=fs.readFileSync("app/api/v1/sync/batch/route.ts","utf8");
+if(!page.includes("/api/v1/diagnostic/questions"))throw new Error("Missing diagnostic client contract");
+if(!sync.includes("audit_logs"))throw new Error("Missing persistence contract");
+console.log("gyaan-saathi Vercel contract: PASS");
