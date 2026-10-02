@@ -17,27 +17,27 @@ const requiredColumns = {
 };
 
 try {
-  const tables = new Set((await sql\`
+  const tables = new Set((await sql`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public'
-  \`).map((r) => r.table_name as string));
+  `).map((r) => r.table_name as string));
 
   for (const table of requiredTables) {
     if (!tables.has(table)) throw new Error(`Missing table: ${table}`);
   }
 
   for (const [table, columns] of Object.entries(requiredColumns)) {
-    const rows = await sql\`
+    const rows = await sql`
       SELECT column_name FROM information_schema.columns
       WHERE table_schema = 'public' AND table_name = ${table}
-    \`;
+    `;
     const actual = new Set(rows.map((r) => r.column_name as string));
     for (const column of columns) {
       if (!actual.has(column)) throw new Error(`Missing column: ${table}.${column}`);
     }
   }
 
-  const versions = await sql\`SELECT version FROM schema_migrations ORDER BY version\`;
+  const versions = await sql`SELECT version FROM schema_migrations ORDER BY version`;
   if (versions.length !== 5 || versions.at(-1)?.version !== "005_diagnostic_selection") {
     throw new Error("Unexpected migration state");
   }
