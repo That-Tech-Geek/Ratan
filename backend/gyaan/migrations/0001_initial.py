@@ -1,0 +1,14 @@
+from django.db import migrations,models
+import django.db.models.deletion
+class Migration(migrations.Migration):
+ initial=True
+ dependencies=[]
+ operations=[
+  migrations.CreateModel(name="School",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("name",models.CharField(max_length=200)),("district",models.CharField(max_length=100)),("block",models.CharField(max_length=100)),("created_at",models.DateTimeField(auto_now_add=True))]),
+  migrations.CreateModel(name="AuditLog",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("actor_type",models.CharField(max_length=20)),("actor_id",models.CharField(blank=True,max_length=64)),("action",models.CharField(max_length=100)),("entity_type",models.CharField(max_length=100)),("entity_id",models.CharField(max_length=64)),("timestamp",models.DateTimeField(auto_now_add=True))]),
+  migrations.CreateModel(name="Student",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("external_id",models.CharField(max_length=64)),("class_no",models.PositiveSmallIntegerField()),("gender",models.CharField(blank=True,max_length=20)),("medium",models.CharField(max_length=20)),("parent_phone_hash",models.CharField(blank=True,max_length=128)),("created_at",models.DateTimeField(auto_now_add=True)),("school",models.ForeignKey(on_delete=django.db.models.deletion.PROTECT,to="gyaan.school"))]),
+  migrations.CreateModel(name="DiagnosticSession",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("started_at",models.DateTimeField()),("completed_at",models.DateTimeField(blank=True,null=True)),("language",models.CharField(max_length=5)),("device_type",models.CharField(max_length=32)),("sync_status",models.CharField(default="pending",max_length=16)),("student",models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,to="gyaan.student"))]),
+  migrations.CreateModel(name="DiagnosticResponse",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("question_id",models.CharField(max_length=64)),("selected_option",models.CharField(max_length=64)),("response_time_ms",models.PositiveIntegerField(blank=True,null=True)),("skipped",models.BooleanField(default=False)),("synced_at",models.DateTimeField(auto_now_add=True)),("session",models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,to="gyaan.diagnosticsession"))]),
+  migrations.AddConstraint(model_name="student",constraint=models.UniqueConstraint(fields=("school","external_id"),name="uniq_student_school_external")),
+  migrations.AddConstraint(model_name="diagnosticresponse",constraint=models.UniqueConstraint(fields=("session","question_id"),name="uniq_response"))
+ ]
