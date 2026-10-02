@@ -1,0 +1,4 @@
+ALTER TABLE diagnostic_sessions
+  ADD COLUMN IF NOT EXISTS class_no SMALLINT,
+  ADD COLUMN IF NOT EXISTS subject VARCHAR(32),
+  ADD COLUMN IF NOT EXISTS question_ids JSONB NOT NULL DEFAULT '[]'::jsonb;
