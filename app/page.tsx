@@ -1,0 +1,16 @@
+"use client";
+import {useEffect,useMemo,useState} from "react";
+import {enqueue,db} from "../lib/offline";
+type Question={id:string;prompt:string;options:string[]};
+export default function Home(){
+ const [questions,setQuestions]=useState<Question[]>([]),[index,setIndex]=useState(0),[answers,setAnswers]=useState<Record<string,string>>({}),[online,setOnline]=useState(true),[queued,setQueued]=useState(0),[loading,setLoading]=useState(true),[done,setDone]=useState(false);
+ useEffect(()=>{setOnline(navigator.onLine);const refresh=()=>{setOnline(navigator.onLine);void db.queue.count().then(setQueued)};addEventListener("online",refresh);addEventListener("offline",refresh);void db.queue.count().then(setQueued);fetch("/api/v1/diagnostic/questions?class=8&subject=maths").then(r=>r.json()).then(x=>setQuestions(x.questions)).finally(()=>setLoading(false));return()=>{removeEventListener("online",refresh);removeEventListener("offline",refresh)}},[]);
+ const q=questions[index]; const progress=useMemo(()=>questions.length?Math.round(((index+(done?1:0))/questions.length)*100):0, [index,questions.length,done]);
+ const choose=async(option:string)=>{if(!q)return;setAnswers(a=>({...a,[q.id]:option}));await enqueue({entity:"diagnostic_response",action:"create",payload:{question_id:q.id,selected_option:option}});setQueued(await db.queue.count());};
+ const next=()=>{if(index+1<questions.length)setIndex(index+1);else setDone(true)};
+ return <main className="shell"><header className="topbar"><div><div className="brand">Gyaan Saathi</div><div className="muted">Learning diagnostics</div></div><span className="badge">{online?"Online":"Offline"} · {queued} queued</span></header>
+ <section className="hero"><h1>Learn where you are.</h1><p>Short diagnostics that keep working on low-end Android devices and unreliable 2G/3G connections. Responses are saved locally first and synchronized when connectivity returns.</p></section>
+ <div className="grid"><article className="card"><h3>Diagnostic</h3><p className="muted">Class 8 mathematics starter assessment.</p></article><article className="card"><h3>Offline-first</h3><p className="muted">Your response queue survives connectivity drops.</p></article><article className="card"><h3>Teacher-ready</h3><p className="muted">The same data model supports reports and re-checks.</p></article></div>
+ <section className="card">{loading?<p>Loading questions…</p>:done?<><h2>Diagnostic saved</h2><p className="muted">{Object.keys(answers).length} response(s) are stored locally and will sync when available.</p><button className="primary" onClick={()=>location.reload()}>Start again</button></>:q?<><div className="progress"><span style={{width:progress+"%"}}/></div><p className="muted">Question {index+1} of {questions.length}</p><div className="question">{q.prompt}</div><div className="options">{q.options.map(o=><button key={o} className={"option "+(answers[q.id]===o?"selected":"")} onClick={()=>void choose(o)}>{o}</button>)}</div><div className="actions" style={{marginTop:18}}><button className="primary" disabled={!answers[q.id]} onClick={next}>{index+1===questions.length?"Finish":"Next"}</button></div></>:<p>No questions are available.</p>}</section>
+ <footer className="footer">Gyaan Saathi · Offline-first education infrastructure</footer></main>
+}
