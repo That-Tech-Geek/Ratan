@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       return invalid("invalid_batch");
     }
 
-    const sessionRows = await db()\`
+    const sessionRows = await db()`
       SELECT ds.id, ds.student_id, s.school_id, ds.expires_at, ds.session_token_hash
       FROM diagnostic_sessions ds
       JOIN students s ON s.id = ds.student_id
@@ -44,14 +44,14 @@ export async function POST(request: Request) {
         AND t.id = ${teacher.teacherId}
         AND t.active = TRUE
       LIMIT 1
-    \`;
+    `;
     const session = sessionRows[0];
     if (!session) return Response.json({error:"forbidden"}, {status:403});
     if (new Date(session.expires_at).getTime() <= Date.now()) return Response.json({error:"session_expired"}, {status:401});
     if (hashSessionToken(sessionToken) !== session.session_token_hash) return Response.json({error:"invalid_session_token"}, {status:401});
 
     const questionIds = new Set(
-      ((await db()\`SELECT question_ids FROM diagnostic_sessions WHERE id = ${sessionId}\`)[0]?.question_ids ?? []) as string[],
+      ((await db()`SELECT question_ids FROM diagnostic_sessions WHERE id = ${sessionId}`)[0]?.question_ids ?? []) as string[],
     );
 
     const accepted: string[] = [];
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         if (!Number.isInteger(responseTimeMs) || responseTimeMs < 0 || responseTimeMs > 60 * 60 * 1000) { rejected.push({id,reason:"invalid_response_time"}); continue; }
 
         const payloadHash = stableHash(item);
-        const eventRows = await tx\`
+        const eventRows = await tx`
           INSERT INTO sync_events
             (idempotency_key, entity_type, action, payload_hash, payload, received_at)
           VALUES
@@ -96,27 +96,27 @@ export async function POST(request: Request) {
             })}::jsonb, NOW())
           ON CONFLICT (idempotency_key) DO NOTHING
           RETURNING id
-        \`;
+        `;
 
         if (!eventRows.length) {
           duplicate.push(id);
           continue;
         }
 
-        await tx\`
+        await tx`
           INSERT INTO diagnostic_responses
             (session_id, question_id, selected_option, response_time_ms, synced_at, sync_event_id)
           VALUES
             (${sessionId}, ${questionId}, ${selectedOption}, ${responseTimeMs}, NOW(), ${eventRows[0].id})
           ON CONFLICT (session_id, question_id) DO NOTHING
-        \`;
+        `;
 
-        await tx\`
+        await tx`
           INSERT INTO audit_logs
             (actor_type, actor_id, action, entity_type, entity_id, school_id)
           VALUES
             ('teacher', ${teacher.uid}, 'create', 'diagnostic_response', ${id}, ${teacher.schoolId})
-        \`;
+        `;
 
         accepted.push(id);
       }
