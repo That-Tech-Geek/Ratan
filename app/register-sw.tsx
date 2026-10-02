@@ -12,7 +12,7 @@ export default function RegisterSW() {
         if (!mounted) return;
         await registration.update();
         if ("sync" in registration) {
-          try { await registration.sync.register("gyaan-saathi-sync"); } catch {}
+          try { await (registration as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register("gyaan-saathi-sync"); } catch {}
         }
       })
       .catch(() => undefined);
