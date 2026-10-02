@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - run: python manage.py makemigrations --check
       - run: python manage.py test
         env:
           CI: "true"
