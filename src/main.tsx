@@ -1,0 +1,4 @@
+import React from "react";import{createRoot}from"react-dom/client";import{registerSW}from"virtual:pwa-register";import{registerSync}from"./sync";import"./style.css";
+registerSW({immediate:true});registerSync();
+function App(){return <main><header><strong>Gyaan Saathi</strong><span>Offline-first learning diagnostics</span></header><section><h1>Student diagnostic</h1><p>Questions are cached locally. You can continue without connectivity and sync later.</p><button onClick={()=>location.reload()}>Start / resume</button><p className="status">{navigator.onLine?"Online":"Offline"} · local queue ready</p></section><footer>Designed for low-end Android and intermittent 2G/3G connectivity.</footer></main>}
+createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
