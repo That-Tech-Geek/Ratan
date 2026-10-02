@@ -25,7 +25,9 @@ async function loadQuestions() {
 }
 
 async function flushQueue() {
-  if (!navigator.onLine) return 0;\n  const session = await getDiagnosticSession();\n  if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return 0;
+  if (!navigator.onLine) return 0;
+  const session = await getDiagnosticSession();
+  if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return 0;
   await db.queue.where("status").equals("syncing").modify({ status: "pending" });
   const pending = (await db.queue.where("status").anyOf("pending", "failed").sortBy("createdAt")).filter((item) => item.retryCount < 5);
   let accepted = 0;
@@ -82,12 +84,14 @@ export default function Home() {
   const [queued, setQueued] = useState(0);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"network" | "cache" | "none">("none");
-  const [done, setDone] = useState(false);\n  const [startedAt] = useState(() => Date.now());\n
+  const [done, setDone] = useState(false);
+  const [startedAt] = useState(() => Date.now());
+
 
   useEffect(() => {
     let mounted = true;
 
-    const refresh = async () => {\n      if (!sessionId) setSessionId(await getClientSessionId());
+    const refresh = async () => {
       if (!mounted) return;
       setOnline(navigator.onLine);
       setQueued(await db.queue.count());
