@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version VARCHAR(64) PRIMARY KEY,
   applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -103,5 +101,3 @@ CREATE INDEX IF NOT EXISTS idx_diagnostic_sessions_student ON diagnostic_session
 CREATE INDEX IF NOT EXISTS idx_diagnostic_responses_session ON diagnostic_responses(session_id);
 CREATE INDEX IF NOT EXISTS idx_sync_events_received ON sync_events(received_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-
-COMMIT;
