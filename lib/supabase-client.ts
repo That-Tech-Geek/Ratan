@@ -6,8 +6,8 @@ let client: SupabaseClient | null = null;
 
 function getSupabase() {
   if (typeof window === "undefined") return null;
-  const url = process.env.PUBLIC_SUPABASE_URL;
-  const key = process.env.PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) throw new Error("supabase_config_missing");
   client ??= createClient(url, key, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
