@@ -1,58 +1,51 @@
 # Gyaan Saathi
 
-Offline-first learning diagnostics for low-end Android devices and intermittent 2G/3G connectivity.
+Gyaan Saathi is an offline-first learning diagnostics web application designed for low-end Android devices and intermittent 2G/3G connectivity.
 
 ## Architecture
 
 ```
-Student / Teacher / Volunteer PWA
+Next.js App Router on Vercel
+        |
+        +-- React learning experience
+        +-- Route Handlers (/api/v1/*)
+        +-- Service Worker + IndexedDB
         |
         v
-Service Worker + IndexedDB
-        |
-        v
-Sync queue (20 items, retry <= 5)
-        |
- HTTPS when online
-        v
-Django REST API
-        |
-        v
-PostgreSQL
+PostgreSQL-compatible database via DATABASE_URL
 ```
 
-The browser owns the offline experience. The server is the durable system of record. Diagnostic and Likert responses are append-oriented and the sync API is idempotency-aware.
+The repository is intentionally a single deployable application. There is no separate frontend runtime or Django service.
 
-## Implemented MVP data flow
+## Current flow
 
-- React + Vite PWA shell with installable service worker.
-- Dexie/IndexedDB queue for offline writes.
-- Queue flush on app open, `online`, and `visibilitychange`.
-- Django API contracts for health, diagnostic questions, and batch sync.
-- Relational models for schools, anonymised students, consent, diagnostic sessions/responses, Likert sessions/responses, learning preferences, gap reports, re-checks, guidance cards, and audit logs.
-- CI runs frontend typecheck/build, backend Django tests, and cross-layer API contract checks.
+1. The student opens the Next.js web app.
+2. Diagnostic questions are served from the same deployment.
+3. Responses are written to IndexedDB immediately.
+4. The service worker keeps the shell usable across connectivity loss.
+5. The sync API accepts queued writes in batches of up to 20.
+6. Server-side persistence uses PostgreSQL-compatible SQL and audit records.
 
-## Deliberate boundaries
+## Vercel deployment
 
-The source specification calls for Firebase phone OTP, WhatsApp Business API, S3-compatible storage, PDF generation, and managed PostgreSQL. Those external integrations are not faked in this migration. They should be added behind explicit service interfaces after the core offline/sync path is stable.
+Import this repository into Vercel and use the default Next.js build settings.
 
-No student login, open-ended AI tutor, real-time chat, gamification, location tracking, or native app is part of this MVP boundary.
+Required environment variable:
+
+- `DATABASE_URL`: PostgreSQL connection string from a Vercel-compatible Postgres provider.
+
+The application lazily creates its MVP tables on the first persistence request. For production, move this schema into a managed migration pipeline once the database provider is fixed.
 
 ## Development
 
-Frontend:
-```
+```bash
 npm install
 npm run dev
+npm run typecheck
+npm run build
+npm test
 ```
 
-Backend:
-```
-cd backend
-python -m venv .venv
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py test
-```
+## MVP boundaries
 
-Environment variables for production include `DJANGO_SECRET_KEY`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, and optionally `VITE_API_URL`.
+Firebase OTP, WhatsApp Business, object storage, PDF generation, production authentication/authorization, teacher dashboards, and advanced reporting are explicit next-phase integrations rather than mocked dependencies.
