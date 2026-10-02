@@ -38,6 +38,7 @@ jobs:
       - run: test -f backend/gyaan/models.py
       - run: test -f src/sync.ts
       - run: grep -q '/api/v1/sync/batch/' src/api.ts
-      - run: grep -q '/api/v1/sync/batch/' backend/gyaan/api.py
-      - run: grep -q 'diagnostic/questions' src/api.ts
-      - run: grep -q 'diagnostic/questions' backend/gyaan/api.py
+      - run: grep -q 'api/v1/sync/batch/' backend/config/urls.py
+      - run: grep -q '/api/v1/diagnostic/questions' src/api.ts
+      - run: grep -q 'api/v1/diagnostic/questions' backend/config/urls.py
+      - run: grep -q 'api/v1/likert/items' backend/config/urls.py
