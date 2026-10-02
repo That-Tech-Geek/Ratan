@@ -17,7 +17,7 @@ try {
   let repaired = 0;
   await sql.begin(async (tx) => {
     for (const row of rows) {
-      const payload = row.payload as Record<string, unknown>;
+      const payload = row.payload;
       const sessionId = Number(payload.session_id);
       const questionId = typeof payload.question_id === "string" ? payload.question_id : "";
       const selectedOption = typeof payload.selected_option === "string" ? payload.selected_option : "";
