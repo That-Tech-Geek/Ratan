@@ -1,0 +1,5 @@
+import {requireConsent,requireStudentAccess,requireTeacher} from "../../../../../lib/server/auth";
+import {db} from "../../../../../lib/server/db";
+import {LIKERT} from "../../../../../lib/questions";
+export const runtime="nodejs";
+export async function POST(request:Request){try{const teacher=await requireTeacher(request);const b=await request.json();const studentId=Number(b.student_id),diagnosticSessionId=Number(b.diagnostic_session_id);await requireStudentAccess(teacher.teacherId,studentId);await requireConsent(studentId);const valid=await db()`SELECT id FROM diagnostic_sessions WHERE id=${diagnosticSessionId} AND student_id=${studentId}`;if(!valid[0])return Response.json({error:"diagnostic_session_not_found"},{status:404});const rows=await db()`INSERT INTO likert_sessions(student_id,started_at,language) VALUES(${studentId},NOW(),'or') RETURNING id`;return Response.json({likert_session_id:Number(rows[0].id),items:LIKERT});}catch(e){if(e instanceof Response)throw e;return Response.json({error:"likert_session_failed"},{status:500});}}
