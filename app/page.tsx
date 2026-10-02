@@ -154,7 +154,7 @@ export default function Home() {
     try {
       const registration = await navigator.serviceWorker?.ready;
       if (registration && "sync" in registration) {
-        try { await registration.sync.register("gyaan-saathi-sync"); } catch {}
+        try { await (registration as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register("gyaan-saathi-sync"); } catch {}
       }
     } catch {}
   };
