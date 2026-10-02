@@ -24,7 +24,7 @@ export async function POST(request:Request){
       if(JSON.stringify(item).length>MAX_ITEM_BYTES){rejected.push({id,reason:"item_too_large"});continue;}
       const payloadHash=stableHash(item);
       const rows=await sql`INSERT INTO sync_events(idempotency_key,entity_type,action,payload_hash,payload,received_at) VALUES (${id},${entity},${action},${payloadHash},${JSON.stringify(item.payload??null)}::jsonb,NOW()) ON CONFLICT (idempotency_key) DO NOTHING RETURNING idempotency_key`;
-      if(rows.length){await sql`INSERT INTO audit_logs(actor_type,actor_id,action,entity_type,entity_id) VALUES ("sync","browser",${action},${entity},${id})`;accepted.push(id);} else duplicate.push(id);
+      if(rows.length){await sql`INSERT INTO audit_logs(actor_type,actor_id,action,entity_type,entity_id) VALUES ('sync','browser',${action},${entity},${id})`;accepted.push(id);} else duplicate.push(id);
     }} finally {await sql.end({timeout:1});}
     return Response.json({accepted,duplicate,rejected,idempotency_ids:[...accepted,...duplicate],server_time:new Date().toISOString()});
   } catch { return Response.json({error:"sync_failed"},{status:500}); }
