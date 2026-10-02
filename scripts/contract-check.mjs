@@ -4,7 +4,7 @@ for(const f of required)if(!fs.existsSync(f))throw new Error("Missing contract f
 for(const legacy of ["Cargo.toml","core","clinician-tools"])if(fs.existsSync(legacy))throw new Error("Legacy artifact remains: "+legacy);
 const forbidden=["Readiness","MoveId","BehavioralActivation","Psychoeducation","risk_flag"];
 function walk(d,out=[]){if(!fs.existsSync(d))return out;for(const e of fs.readdirSync(d,{withFileTypes:true})){if([".git","node_modules",".next"].includes(e.name))continue;const p=d+"/"+e.name;if(e.isDirectory())walk(p,out);else if(/\.(ts|tsx|js|mjs|json|sql|md|rs|py)$/.test(e.name))out.push(p)}return out}
-for(const f of walk(".")){const t=fs.readFileSync(f,"utf8");for(const term of forbidden)if(t.includes(term))throw new Error("Forbidden legacy term "+term+" in "+f)}
+for(const f of walk(".").filter((f)=>f!=="./scripts/contract-check.mjs")){const t=fs.readFileSync(f,"utf8");for(const term of forbidden)if(t.includes(term))throw new Error("Forbidden legacy term "+term+" in "+f)}
 const sync=fs.readFileSync("app/api/v1/sync/batch/route.ts","utf8");if(!sync.includes("requireTeacher")||!sync.includes("sync_events")||!sync.includes("diagnostic_responses")||!sync.includes("likert_response"))throw new Error("Sync contract incomplete");
 const page=fs.readFileSync("app/page.tsx","utf8");if(!page.includes("/api/v1/sessions")||!page.includes("getDiagnosticSession"))throw new Error("Session client contract incomplete");
 console.log("gyaan-saathi P0/P1/P2 contract: PASS");
