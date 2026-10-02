@@ -4,7 +4,7 @@ const required = [
   "app/page.tsx","app/layout.tsx","app/api/v1/health/route.ts",
   "app/api/v1/diagnostic/questions/route.ts","app/api/v1/likert/items/route.ts",
   "app/api/v1/sync/batch/route.ts","lib/offline.ts","lib/browser-cache.ts",
-  "lib/server/db.ts","public/manifest.webmanifest","public/sw.js",
+  "lib/server/db.ts","migrations/001_initial.sql","migrations/002_sessions.sql","migrations/003_auth.sql","migrations/004_sync_materialization.sql","scripts/migrate.mjs","scripts/verify-schema.mjs","public/manifest.webmanifest","public/sw.js",
 ];
 
 for (const file of required) {
@@ -26,3 +26,23 @@ if (!questions.includes('reviewStatus:"teacher-approved"')) throw new Error("Que
 if (!fs.readFileSync("lib/offline.ts","utf8").includes("this.version(2)")) throw new Error("IndexedDB schema version missing");
 
 console.log("gyaan-saathi production offline/cache contract: PASS");
+
+
+const forbidden = ["Readiness", "MoveId", "BehavioralActivation", "Psychoeducation", "risk_flag"];
+const sourceFiles = [];
+function walk(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
+    if ([".git","node_modules",".next"].includes(entry.name)) continue;
+    const path = dir + "/" + entry.name;
+    if (entry.isDirectory()) walk(path);
+    else if (/\\.(ts|tsx|js|mjs|json|sql|md|rs|py)$/.test(entry.name)) sourceFiles.push(path);
+  }
+}
+walk(".");
+for (const file of sourceFiles) {
+  const text = fs.readFileSync(file, "utf8");
+  for (const term of forbidden) {
+    if (text.includes(term)) throw new Error(`Forbidden legacy domain reference "${term}" in ${file}`);
+  }
+}
