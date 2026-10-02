@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const tokenHash = hashSessionToken(token);
     const expiresAt = sessionExpiry();
 
-    const rows = await db()\`
+    const rows = await db()`
       INSERT INTO diagnostic_sessions
         (student_id, started_at, language, device_type, sync_status, client_session_id,
          session_token_hash, issued_at, expires_at, class_no, subject, question_ids)
@@ -62,15 +62,15 @@ export async function POST(request: Request) {
         (${studentId}, NOW(), ${language}, ${deviceType}, 'pending', ${clientSessionId},
          ${tokenHash}, NOW(), ${expiresAt}, ${classNo}, ${subject}, ${JSON.stringify(selected.map((q) => q.id))}::jsonb)
       RETURNING id, client_session_id, expires_at
-    \`;
+    `;
 
     const session = rows[0];
-    await db()\`
+    await db()`
       INSERT INTO audit_logs
         (actor_type, actor_id, action, entity_type, entity_id, school_id)
       VALUES
         ('teacher', ${teacher.uid}, 'create', 'diagnostic_session', ${String(session.id)}, ${teacher.schoolId})
-    \`;
+    `;
 
     return Response.json({
       session_id: Number(session.id),
